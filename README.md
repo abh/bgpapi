@@ -1,7 +1,7 @@
 # BGP API
 
-`bgpapi` runs as a "parsed-route-backend" to [ExaBGP]() and provides
-an HTTP API to some BGP data.
+`bgpapi` runs as a "parsed-route-backend" to [ExaBGP](http://code.google.com/p/exabgp/)
+and provides an HTTP API to some BGP data.
 
 ## Compilation
 
@@ -14,7 +14,7 @@ After installing Go (golang) and configuring the development environment, you ca
 ## Configuration
 
 bgpapi itself doesn't currently take any configuration. Configure a
-`neighbor` in ExaBGP with a `parsed-route-backend` process, like:
+`neighbor` in ExaBGP and a `parsed-route-backend` process, like:
 
         process parsed-route-backend {
                 parse-routes;
