@@ -18,10 +18,10 @@ type homePageData struct {
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
-	tmpl, err := template.ParseFiles("templates/home.html", "templates/header.html", "templates/footer.html")
+	tmpl, err := template.New("index").Parse(index_tpl)
 	if err != nil {
-		log.Println("Could not parse templates", err)
-		fmt.Fprintln(w, "Problem parsing templates", err)
+		log.Println("Could not parse template", err)
+		fmt.Fprintln(w, "Problem parsing template", err)
 		return
 	}
 
@@ -102,3 +102,59 @@ func httpServer() {
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", nil)
 }
+
+const index_tpl = `<!DOCTYPE html>
+<html>
+	<head><title>BGP Status</title>
+		<link href="http://st.pimg.net/cdn/libs/bootstrap/2/css/bootstrap.min.css" rel="stylesheet">
+		<style>
+			html,
+			body {
+			  margin: 10px;
+			  margin-top: 20px;
+			}
+		</style>
+	</head>
+	<body>
+
+	<h1>{{.Title}}</h1>
+
+	<table class="table table-striped table-hover table-condensed">
+		<thead>
+			<tr>
+				<th>IP</th> 
+				<th>State</th>
+				<th>Prefixes</th>
+				<th>ASNs</th>
+				<th>Updates</th>
+			</tr>
+		</thead>
+
+		<tbody>
+		{{range $ip, $data := .Neighbors}}
+			<tr>
+				<td>
+					{{$ip}}
+				</td>
+				<td>
+					{{$data.State}}
+				</td>
+				<td>
+					<a href="/api/{{$ip}}/prefixes">{{$data.PrefixCount}}</a>
+				</td>
+				<td>
+					{{$data.AsnCount}}
+				</td>
+				<td>
+					{{$data.Updates}}
+				</td>
+			<tr>
+		{{else}}
+			<tr><td>No neighbors</td></tr>
+		{{end}}
+		</tbody>
+	</table>
+
+	</body>
+</html>
+`
