@@ -27,6 +27,11 @@ func bgpReader() {
 			f := strings.SplitN(line, " ", 4)
 			// fmt.Printf("%#v\n", f)
 
+			if len(f) < 3 {
+				log.Printf("Did not split line into enough parts\nLINE: [%s]\nF: %#v\n", line, f)
+				continue
+			}
+
 			neighbor_ip := f[1]
 			command := f[2]
 
@@ -40,8 +45,9 @@ func bgpReader() {
 			neighbor := neighbors[neighbor_ip]
 
 			switch command {
-			case "up", "connected":
+			case "up", "connected", "down":
 				neighbor.State = command
+				log.Println("State change", line)
 			case "update":
 				neighbor.State = "update " + f[3]
 			case "announced":
