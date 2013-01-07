@@ -22,8 +22,14 @@ func bgpReader() {
 	var err error
 	for line, err := r.ReadString('\n'); err == nil; line, err = r.ReadString('\n') {
 		line = strings.TrimSpace(line)
+
+		if line == "shutdown" {
+			log.Println("Shutdown command received")
+			return
+		}
+
 		if len(line) > 0 {
-			// fmt.Println("X", line)
+			// log.Println("X", line)
 			f := strings.SplitN(line, " ", 4)
 			// fmt.Printf("%#v\n", f)
 
