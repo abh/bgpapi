@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -82,23 +83,24 @@ func bgpReader() {
 					delete(neighbor.PrefixAsn, route.Prefix.String())
 					delete(neighbor.AsnPrefix[asn], route.Prefix.String())
 				} else {
-					fmt.Println("Could not find prefix in PrefixAsn")
-					fmt.Println("%#v", neighbor.PrefixAsn)
+					log.Println("Could not find prefix in PrefixAsn")
+					log.Println("%#v", neighbor.PrefixAsn)
 				}
 
 			default:
-				fmt.Println("Unknown command:", command)
-				fmt.Println("LINE:", line)
-				panic("Command not implemented:")
+				err_text := fmt.Sprintf("Command not implemented: %s\n%s\n", command, line)
+				log.Println(err_text)
+				err := fmt.Errorf(err_text)
+				panic(err)
 			}
 		}
 	}
 
 	if err != nil && err != io.EOF {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	} else {
-		fmt.Println("EOF")
+		log.Println("EOF")
 	}
 }
 
@@ -143,7 +145,7 @@ func parseRoute(input string) *Route {
 					continue
 				}
 				if key != "as-path" {
-					fmt.Printf("key: %s, v: %s\n\n", key, v)
+					log.Printf("key: %s, v: %s\n\n", key, v)
 					panic("can only do list for as-path")
 				}
 				if v == "(" {
@@ -164,7 +166,7 @@ func parseRoute(input string) *Route {
 
 	_, prefix, err := net.ParseCIDR(route.Options["route"])
 	if err != nil {
-		fmt.Printf("Could not parse prefix %s %e\n", route.Options["route"], err)
+		log.Printf("Could not parse prefix %s %e\n", route.Options["route"], err)
 		panic("bad prefix")
 	}
 	route.Prefix = prefix
@@ -174,17 +176,13 @@ func parseRoute(input string) *Route {
 		route.PrimaryASN = ASN(aspath[len(aspath)-1])
 	}
 
-	if DEBUG {
-		fmt.Println("PREFIX", route.Prefix)
-	}
-
 	return route
 }
 
 func addASPath(aspath *ASPath, v string) {
 	asn, err := strconv.Atoi(v)
 	if err != nil {
-		fmt.Println("Could not parse number", v)
+		log.Println("Could not parse number", v)
 		panic("Bad as-path")
 	}
 	*aspath = append(*aspath, ASN(asn))

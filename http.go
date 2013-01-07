@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -19,7 +20,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := template.ParseFiles("templates/home.html", "templates/header.html", "templates/footer.html")
 	if err != nil {
-		fmt.Println("Could not parse templates", err)
+		log.Println("Could not parse templates", err)
 		fmt.Fprintln(w, "Problem parsing templates", err)
 		return
 	}
