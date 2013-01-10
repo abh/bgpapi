@@ -8,8 +8,7 @@ import (
 )
 
 func main() {
-	// TODO(abh) need mutexes on the neighbors struct
-	runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(2)
 
 	log.New(os.Stderr, "bgpapi", log.LstdFlags)
 	log.SetPrefix("bgpapi ")

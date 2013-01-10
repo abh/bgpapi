@@ -9,9 +9,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var neighbors Neighbors
+var neighbors_lock sync.RWMutex
 
 func bgpReader() {
 
@@ -29,83 +31,9 @@ func bgpReader() {
 		}
 
 		if len(line) > 0 {
-			// log.Println("X", line)
-			f := strings.SplitN(line, " ", 4)
-			// fmt.Printf("%#v\n", f)
-
-			if len(f) < 3 {
-				log.Printf("Did not split line into enough parts\nLINE: [%s]\nF: %#v\n", line, f)
-				continue
-			}
-
-			neighbor_ip := f[1]
-			command := f[2]
-
-			if neighbors[neighbor_ip] == nil {
-				neighbor := new(Neighbor)
-				neighbors[neighbor_ip] = neighbor
-				// neighbor.AsnPrefix = new(map[ASN]Prefixes)
-				// neighbor.PrefixAsn = make(map[string]ASN)
-			}
-
-			neighbor := neighbors[neighbor_ip]
-
-			switch command {
-			case "up", "connected", "down":
-				neighbor.State = command
-				log.Println("State change", line)
-			case "update":
-				neighbor.State = "update " + f[3]
-			case "announced":
-				// fmt.Printf("R: %#v\n", r)
-
-				neighbor.Updates++
-
-				route := parseRoute(f[3])
-
-				if ones, _ := route.Prefix.Mask.Size(); ones < 8 || ones > 25 {
-					// fmt.Println("prefix mask too big or small", route.Prefix)
-				} else {
-					if neighbor.AsnPrefix == nil {
-						neighbor.AsnPrefix = make(map[ASN]Prefixes)
-					}
-					if neighbor.PrefixAsn == nil {
-						neighbor.PrefixAsn = make(Prefixes)
-					}
-
-					if neighbor.AsnPrefix[route.PrimaryASN] == nil {
-						neighbor.AsnPrefix[route.PrimaryASN] = make(Prefixes)
-					}
-
-					neighbor.AsnPrefix[route.PrimaryASN][route.Prefix.String()] = 0
-					neighbor.PrefixAsn[route.Prefix.String()] = route.PrimaryASN
-				}
-			case "withdrawn":
-
-				neighbor.Updates++
-
-				// fmt.Println("withdraw", f[3])
-				route := parseRoute(f[3])
-
-				// x, y := neighbor.PrefixAsn[route.Prefix.String()]
-				// fmt.Println("X/Y", x, y)
-
-				if asn, exists := neighbor.PrefixAsn[route.Prefix.String()]; exists {
-					// fmt.Println("Removing ASN from prefix", asn, route.Prefix)
-					delete(neighbor.PrefixAsn, route.Prefix.String())
-					delete(neighbor.AsnPrefix[asn], route.Prefix.String())
-				} else {
-					log.Println("Could not find prefix in PrefixAsn")
-					log.Println("%#v", neighbor.PrefixAsn)
-				}
-
-			default:
-				err_text := fmt.Sprintf("Command not implemented: %s\n%s\n", command, line)
-				log.Println(err_text)
-				err := fmt.Errorf(err_text)
-				panic(err)
-			}
+			processLine(line)
 		}
+
 	}
 
 	if err != nil && err != io.EOF {
@@ -113,6 +41,97 @@ func bgpReader() {
 		return
 	} else {
 		log.Println("EOF")
+	}
+}
+
+func processLine(line string) {
+	f := strings.SplitN(line, " ", 4)
+
+	if len(f) < 3 {
+		log.Printf("Did not split line into enough parts\nLINE: [%s]\nF: %#v\n", line, f)
+		return
+	}
+
+	neighbor_ip := f[1]
+	command := f[2]
+
+	neighbors_lock.RLock()
+	defer neighbors_lock.RUnlock()
+
+	if neighbors[neighbor_ip] == nil {
+		neighbors_lock.RUnlock()
+		neighbors_lock.Lock()
+
+		neighbor := new(Neighbor)
+		neighbors[neighbor_ip] = neighbor
+
+		neighbors_lock.Unlock()
+		neighbors_lock.RLock()
+		defer neighbors_lock.RUnlock() // double?
+	}
+
+	neighbor := neighbors[neighbor_ip]
+
+	neighbor.lock.Lock()
+	defer neighbor.lock.Unlock()
+
+	switch command {
+	case "up", "connected", "down":
+		neighbor.State = command
+		log.Println("State change", line)
+		return
+	case "update":
+		neighbor.State = "update " + f[3]
+		return
+	case "announced":
+		// fmt.Printf("R: %#v\n", r)
+
+		neighbor.Updates++
+
+		route := parseRoute(f[3])
+
+		if ones, _ := route.Prefix.Mask.Size(); ones < 8 || ones > 25 {
+			// fmt.Println("prefix mask too big or small", route.Prefix)
+		} else {
+			if neighbor.AsnPrefix == nil {
+				neighbor.AsnPrefix = make(map[ASN]Prefixes)
+			}
+			if neighbor.PrefixAsn == nil {
+				neighbor.PrefixAsn = make(Prefixes)
+			}
+
+			if neighbor.AsnPrefix[route.PrimaryASN] == nil {
+				neighbor.AsnPrefix[route.PrimaryASN] = make(Prefixes)
+			}
+
+			neighbor.AsnPrefix[route.PrimaryASN][route.Prefix.String()] = 0
+			neighbor.PrefixAsn[route.Prefix.String()] = route.PrimaryASN
+		}
+		return
+	case "withdrawn":
+
+		neighbor.Updates++
+
+		// fmt.Println("withdraw", f[3])
+		route := parseRoute(f[3])
+
+		// x, y := neighbor.PrefixAsn[route.Prefix.String()]
+		// fmt.Println("X/Y", x, y)
+
+		if asn, exists := neighbor.PrefixAsn[route.Prefix.String()]; exists {
+			// fmt.Println("Removing ASN from prefix", asn, route.Prefix)
+			delete(neighbor.PrefixAsn, route.Prefix.String())
+			delete(neighbor.AsnPrefix[asn], route.Prefix.String())
+		} else {
+			log.Println("Could not find prefix in PrefixAsn")
+			log.Println("%#v", neighbor.PrefixAsn)
+		}
+		return
+	default:
+		err_text := fmt.Sprintf("Command not implemented: %s\n%s\n", command, line)
+		log.Println(err_text)
+		err := fmt.Errorf(err_text)
+		panic(err)
 	}
 }
 

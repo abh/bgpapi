@@ -25,6 +25,9 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	neighbors_lock.RLock()
+	defer neighbors_lock.RUnlock()
+
 	data := new(homePageData)
 	data.Title = "BGP Status"
 	data.Neighbors = neighbors
@@ -37,7 +40,12 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func StatusHandler(w http.ResponseWriter, r *http.Request) {
+	neighbors_lock.RLock()
+	defer neighbors_lock.RUnlock()
+
 	for neighbor, data := range neighbors {
+		data.lock.RLock()
+		defer data.lock.RUnlock()
 		fmt.Fprintf(w, "%s\t%s\t%v\n", neighbor, data.State, data.Updates)
 	}
 }
@@ -47,12 +55,18 @@ func ApiHandler(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 
+	neighbors_lock.RLock()
+	defer neighbors_lock.RUnlock()
+
 	neighbor_ip := vars["neighbor"]
 	neighbor, ok := neighbors[neighbor_ip]
 	if !ok {
 		w.WriteHeader(404)
 		return
 	}
+
+	neighbor.lock.RLock()
+	defer neighbor.lock.RUnlock()
 
 	// fmt.Printf("VARS: %#v\n", vars)
 
