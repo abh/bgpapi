@@ -107,7 +107,6 @@ func processLine(line string) {
 			neighbor.AsnPrefix[route.PrimaryASN][route.Prefix.String()] = 0
 			neighbor.PrefixAsn[route.Prefix.String()] = route.PrimaryASN
 		}
-		return
 	case "withdrawn":
 
 		neighbor.Updates++
@@ -126,13 +125,17 @@ func processLine(line string) {
 			log.Println("Could not find prefix in PrefixAsn")
 			log.Println("%#v", neighbor.PrefixAsn)
 		}
-		return
 	default:
 		err_text := fmt.Sprintf("Command not implemented: %s\n%s\n", command, line)
 		log.Println(err_text)
 		err := fmt.Errorf(err_text)
 		panic(err)
 	}
+
+	if neighbor.Updates%25000 == 0 {
+		log.Printf("Processed %v updates from %s\n", neighbor.Updates, neighbor_ip)
+	}
+
 }
 
 func parseRoute(input string) *Route {
