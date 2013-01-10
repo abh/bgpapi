@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/miekg/bitradix"
 	"net"
 	"sync"
 )
 
-type ASN uint
+type ASN uint32
 
 type ASPath []ASN
 
@@ -17,6 +18,7 @@ type Neighbor struct {
 	AsnPrefix map[ASN]Prefixes
 	PrefixAsn Prefixes
 	Updates   int
+	trie      *bitradix.Radix32
 }
 
 type Route struct {

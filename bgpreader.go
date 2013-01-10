@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/miekg/bitradix"
 	"io"
 	"log"
 	"net"
@@ -63,6 +64,7 @@ func processLine(line string) {
 		neighbors_lock.Lock()
 
 		neighbor := new(Neighbor)
+		neighbor.trie = bitradix.New32()
 		neighbors[neighbor_ip] = neighbor
 
 		neighbors_lock.Unlock()
@@ -106,6 +108,8 @@ func processLine(line string) {
 
 			neighbor.AsnPrefix[route.PrimaryASN][route.Prefix.String()] = 0
 			neighbor.PrefixAsn[route.Prefix.String()] = route.PrimaryASN
+
+			addRoute(neighbor.trie, route.Prefix, uint32(route.PrimaryASN))
 		}
 	case "withdrawn":
 
@@ -116,6 +120,8 @@ func processLine(line string) {
 
 		// x, y := neighbor.PrefixAsn[route.Prefix.String()]
 		// fmt.Println("X/Y", x, y)
+
+		removeRoute(neighbor.trie, route.Prefix, uint32(route.PrimaryASN))
 
 		if asn, exists := neighbor.PrefixAsn[route.Prefix.String()]; exists {
 			// fmt.Println("Removing ASN from prefix", asn, route.Prefix)
