@@ -61,8 +61,9 @@ func ApiHandler(w http.ResponseWriter, r *http.Request) {
 	defer neighbors_lock.RUnlock()
 
 	type ipasnResult struct {
-		ASN  ASN
-		Name string
+		ASN    ASN
+		Name   string `json:",omitempty"`
+		Prefix string `json:",omitempty"`
 	}
 
 	switch vars["method"] {
@@ -81,9 +82,15 @@ func ApiHandler(w http.ResponseWriter, r *http.Request) {
 		for neighbor, data := range neighbors {
 			data.lock.RLock()
 			defer data.lock.RUnlock()
-			result[neighbor] = new(ipasnResult)
-			result[neighbor].ASN = data.FindAsn(&ip)
-			result[neighbor].Name = ""
+
+			node := data.FindNode(&ip)
+			if node.Bits() > 0 {
+				result[neighbor] = new(ipasnResult)
+				r := result[neighbor]
+				r.ASN = ASN(node.Value)
+				r.Name = ""
+				r.Prefix = nodeToIPNet(node).String()
+			}
 		}
 
 		json, err := json.Marshal(map[string]interface{}{"result": result})
@@ -259,10 +266,15 @@ const index_tpl = `<!DOCTYPE html>
 			    request.done(function (response, textStatus, jqXHR) {
 			    	var result = response.result;
 					var html = '<table class="table table-hover" style="width:300px"><tbody>' +
-						'<thead><tr><th>Neighbor</th><th>ASN</th></tr></thead>';
+						'<thead><tr><th>Neighbor</th>' + 
+						'<th>Prefix</th>' +
+						'<th>ASN</th></tr></thead>';
 
 			    	_.each(result, function(asn,neighbor) {
-			    		html += "<tr><td>" + neighbor + "</td><td>" + asn.ASN + "</td></tr>";
+			    		html += "<tr><td>" + neighbor + 
+			    			"</td><td>" + asn.Prefix +
+			    			"</td><td>" + asn.ASN +
+			    			"</td></tr>";
 			    	});
 
 			    	html += "</tbody></table>";

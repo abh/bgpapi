@@ -115,11 +115,7 @@ func processLine(line string) {
 
 		neighbor.Updates++
 
-		// fmt.Println("withdraw", f[3])
 		route := parseRoute(f[3])
-
-		// x, y := neighbor.PrefixAsn[route.Prefix.String()]
-		// fmt.Println("X/Y", x, y)
 
 		removeRoute(neighbor.trie, route.Prefix, uint32(route.PrimaryASN))
 
