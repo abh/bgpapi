@@ -181,8 +181,10 @@ func parseRoute(input string) *Route {
 					continue
 				}
 				if key != "as-path" {
+					log.Println("can only do list for as-path")
 					log.Printf("key: %s, v: %s\n\n", key, v)
-					panic("can only do list for as-path")
+					log.Println("LINE", input)
+					state = parseSkip
 				}
 				if v == "(" {
 					state = parseSkip
@@ -193,7 +195,7 @@ func parseRoute(input string) *Route {
 
 			}
 		case parseSkip:
-			if v == ")" {
+			if v == ")" || v == "]" {
 				state = parseList
 			}
 		}
