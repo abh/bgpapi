@@ -62,6 +62,7 @@ func ApiHandler(w http.ResponseWriter, r *http.Request) {
 
 	type ipasnResult struct {
 		ASN    ASN
+		ASPath ASPath `json:",omitempty"`
 		Name   string `json:",omitempty"`
 		Prefix string `json:",omitempty"`
 	}
@@ -86,8 +87,10 @@ func ApiHandler(w http.ResponseWriter, r *http.Request) {
 			node := data.FindNode(&ip)
 			if node.Bits() > 0 {
 				result[neighbor] = new(ipasnResult)
+				route := node.Value.(*Route)
 				r := result[neighbor]
-				r.ASN = ASN(node.Value)
+				r.ASN = ASN(route.PrimaryASN)
+				r.ASPath = route.ASPath
 				r.Name = ""
 				r.Prefix = nodeToIPNet(node).String()
 			}
@@ -100,7 +103,7 @@ func ApiHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, "Could not generate JSON")
 		}
 
-		fmt.Fprint(w, string(json))
+		fmt.Fprint(w, string(json), "\n")
 
 	default:
 		w.WriteHeader(404)
@@ -259,7 +262,7 @@ const index_tpl = `<!DOCTYPE html>
 
 			    var request = $.ajax({
 			        url: "/api/ipasn",
-			        type: "post",
+			        type: "get",
 			        data: serializedData
 			    });
 

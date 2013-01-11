@@ -7,12 +7,12 @@ import (
 	"reflect"
 )
 
-func addRoute(r *bitradix.Radix32, ipnet *net.IPNet, asn uint32) {
+func addRoute(r *bitradix.Radix32, ipnet *net.IPNet, route *Route) {
 	net, mask := ipNetToUint(ipnet)
-	r.Insert(net, mask, asn)
+	r.Insert(net, mask, route)
 }
 
-func removeRoute(r *bitradix.Radix32, ipnet *net.IPNet, asn uint32) {
+func removeRoute(r *bitradix.Radix32, ipnet *net.IPNet) {
 	net, mask := ipNetToUint(ipnet)
 	r.Remove(net, mask)
 }
@@ -50,5 +50,5 @@ func (n *Neighbor) FindNode(ip *net.IP) *bitradix.Radix32 {
 
 func (n *Neighbor) FindAsn(ip *net.IP) ASN {
 	node := n.FindNode(ip)
-	return ASN(node.Value)
+	return node.Value.(Route).PrimaryASN
 }

@@ -109,7 +109,7 @@ func processLine(line string) {
 			neighbor.AsnPrefix[route.PrimaryASN][route.Prefix.String()] = 0
 			neighbor.PrefixAsn[route.Prefix.String()] = route.PrimaryASN
 
-			addRoute(neighbor.trie, route.Prefix, uint32(route.PrimaryASN))
+			addRoute(neighbor.trie, route.Prefix, route)
 		}
 	case "withdrawn":
 
@@ -117,7 +117,7 @@ func processLine(line string) {
 
 		route := parseRoute(f[3])
 
-		removeRoute(neighbor.trie, route.Prefix, uint32(route.PrimaryASN))
+		removeRoute(neighbor.trie, route.Prefix)
 
 		if asn, exists := neighbor.PrefixAsn[route.Prefix.String()]; exists {
 			// fmt.Println("Removing ASN from prefix", asn, route.Prefix)
@@ -212,6 +212,7 @@ func parseRoute(input string) *Route {
 
 	if len(aspath) > 0 {
 		route.PrimaryASN = ASN(aspath[len(aspath)-1])
+		route.ASPath = aspath
 	}
 
 	return route
