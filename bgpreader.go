@@ -185,6 +185,7 @@ func parseRoute(input string) *Route {
 					log.Printf("key: %s, v: %s\n\n", key, v)
 					log.Println("LINE", input)
 					state = parseSkip
+					continue
 				}
 				if v == "(" {
 					state = parseSkip
@@ -195,8 +196,11 @@ func parseRoute(input string) *Route {
 
 			}
 		case parseSkip:
-			if v == ")" || v == "]" {
+			switch v {
+			case ")":
 				state = parseList
+			case "]":
+				state = parseKey
 			}
 		}
 	}
